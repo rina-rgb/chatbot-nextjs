@@ -5,6 +5,7 @@ import { createGuestUser, getUser } from '@/lib/db/queries';
 import { authConfig } from './auth.config';
 import { DUMMY_PASSWORD } from '@/lib/constants';
 import type { DefaultJWT } from 'next-auth/jwt';
+import { createMockAuth } from '@/lib/mock-auth';
 
 export type UserType = 'guest' | 'regular';
 
@@ -30,12 +31,7 @@ declare module 'next-auth/jwt' {
   }
 }
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
+const nextAuthInstance = NextAuth({
   ...authConfig,
   providers: [
     Credentials({
@@ -90,3 +86,16 @@ export const {
     },
   },
 });
+
+// TEMPORARY: Use mock auth for MVP development
+// Set this to false to re-enable real authentication
+const USE_MOCK_AUTH = true;
+
+export const {
+  handlers: { GET, POST },
+  signIn,
+  signOut,
+} = nextAuthInstance;
+
+// Export mock auth when authentication is disabled
+export const auth = USE_MOCK_AUTH ? createMockAuth() : nextAuthInstance.auth;

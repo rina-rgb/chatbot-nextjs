@@ -2,13 +2,14 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { guestRegex, isDevelopmentEnvironment } from './lib/constants';
 
+// TEMPORARILY DISABLED FOR MVP DEVELOPMENT
+// Uncomment the function below to re-enable authentication
+/*
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  /*
-   * Playwright starts the dev server and requires a 200 status to
-   * begin the tests, so this ensures that the tests can start
-   */
+  // Playwright starts the dev server and requires a 200 status to
+  // begin the tests, so this ensures that the tests can start
   if (pathname.startsWith('/ping')) {
     return new Response('pong', { status: 200 });
   }
@@ -37,6 +38,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
+  return NextResponse.next();
+}
+*/
+
+// TEMPORARY: Allow all requests to pass through without authentication
+export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 

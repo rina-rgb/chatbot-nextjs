@@ -38,9 +38,21 @@ import { ChatSDKError } from '../errors';
 // use the Drizzle adapter for Auth.js / NextAuth
 // https://authjs.dev/reference/adapter/drizzle
 
-// biome-ignore lint: Forbidden non-null assertion.
-const client = postgres(process.env.POSTGRES_URL!);
-const db = drizzle(client);
+// Initialize PostgreSQL connection
+let client: any;
+let db: any;
+
+try {
+  if (process.env.POSTGRES_URL) {
+    client = postgres(process.env.POSTGRES_URL);
+    db = drizzle(client);
+    console.log('✅ Connected to PostgreSQL database');
+  } else {
+    console.error('❌ POSTGRES_URL not found in environment variables');
+  }
+} catch (error) {
+  console.error('❌ Failed to connect to PostgreSQL:', error);
+}
 
 export async function getUser(email: string): Promise<Array<User>> {
   try {
