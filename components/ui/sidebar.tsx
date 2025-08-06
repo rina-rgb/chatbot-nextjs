@@ -438,7 +438,10 @@ SidebarGroup.displayName = 'SidebarGroup';
 
 const SidebarGroupLabel = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<'div'> & { asChild?: boolean }
+  Omit<React.ComponentProps<'div'>, 'ref'> & {
+    asChild?: boolean;
+    ref?: React.Ref<HTMLDivElement>;
+  }
 >(({ className, asChild = false, ...props }, ref) => {
   const Comp = asChild ? Slot : 'div';
 
@@ -459,8 +462,11 @@ SidebarGroupLabel.displayName = 'SidebarGroupLabel';
 
 const SidebarGroupAction = React.forwardRef<
   HTMLButtonElement,
-  React.ComponentProps<'button'> & { asChild?: boolean }
->(({ className, asChild = false, ...props }, ref) => {
+  Omit<React.ComponentProps<'button'>, 'ref'> & {
+    asChild?: boolean;
+    ref?: React.Ref<HTMLButtonElement>;
+  }
+>(({ asChild = false, className, ...props }, ref) => {
   const Comp = asChild ? Slot : 'button';
 
   return (
@@ -543,10 +549,11 @@ const sidebarMenuButtonVariants = cva(
 
 const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement,
-  React.ComponentProps<'button'> & {
+  Omit<React.ComponentProps<'button'>, 'ref'> & {
     asChild?: boolean;
     isActive?: boolean;
     tooltip?: string | React.ComponentProps<typeof TooltipContent>;
+    ref?: React.Ref<HTMLButtonElement>;
   } & VariantProps<typeof sidebarMenuButtonVariants>
 >(
   (
@@ -602,9 +609,10 @@ SidebarMenuButton.displayName = 'SidebarMenuButton';
 
 const SidebarMenuAction = React.forwardRef<
   HTMLButtonElement,
-  React.ComponentProps<'button'> & {
+  Omit<React.ComponentProps<'button'>, 'ref'> & {
     asChild?: boolean;
     showOnHover?: boolean;
+    ref?: React.Ref<HTMLButtonElement>;
   }
 >(({ className, asChild = false, showOnHover = false, ...props }, ref) => {
   const Comp = asChild ? Slot : 'button';
@@ -715,10 +723,11 @@ SidebarMenuSubItem.displayName = 'SidebarMenuSubItem';
 
 const SidebarMenuSubButton = React.forwardRef<
   HTMLAnchorElement,
-  React.ComponentProps<'a'> & {
+  Omit<React.ComponentProps<'a'>, 'ref'> & {
     asChild?: boolean;
     size?: 'sm' | 'md';
     isActive?: boolean;
+    ref?: React.Ref<HTMLAnchorElement>;
   }
 >(({ asChild = false, size = 'md', isActive, className, ...props }, ref) => {
   const Comp = asChild ? Slot : 'a';

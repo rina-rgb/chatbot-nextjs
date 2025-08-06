@@ -168,3 +168,49 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const consultantNote = pgTable(
+  'ConsultantNote',
+  {
+    id: uuid('id').notNull().defaultRandom(),
+    chatId: uuid('chatId')
+      .notNull()
+      .references(() => chat.id),
+    title: text('title').notNull(),
+    summary: text('summary').notNull(),
+    details: text('details'),
+    priority: varchar('priority', { enum: ['green', 'yellow', 'red'] })
+      .notNull()
+      .default('green'),
+    createdAt: timestamp('createdAt').notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+    chatRef: foreignKey({
+      columns: [table.chatId],
+      foreignColumns: [chat.id],
+    }),
+  }),
+);
+
+export type ConsultantNote = InferSelectModel<typeof consultantNote>;
+
+export const consultantNoteVote = pgTable(
+  'ConsultantNoteVote',
+  {
+    chatId: uuid('chatId')
+      .notNull()
+      .references(() => chat.id),
+    noteId: uuid('noteId')
+      .notNull()
+      .references(() => consultantNote.id),
+    isUpvoted: boolean('isUpvoted').notNull(),
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.chatId, table.noteId] }),
+    };
+  },
+);
+
+export type ConsultantNoteVote = InferSelectModel<typeof consultantNoteVote>;

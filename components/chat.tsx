@@ -2,7 +2,7 @@
 
 import { DefaultChatTransport } from 'ai';
 import { useChat } from '@ai-sdk/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
@@ -22,6 +22,7 @@ import { useAutoResume } from '@/hooks/use-auto-resume';
 import { ChatSDKError } from '@/lib/errors';
 import type { Attachment, ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
+import { ConsultantNoteCard } from './consultant-note-card';
 
 export function Chat({
   id,
@@ -46,9 +47,44 @@ export function Chat({
   });
 
   const { mutate } = useSWRConfig();
-  const { setDataStream } = useDataStream();
+  const { dataStream, setDataStream } = useDataStream();
 
   const [input, setInput] = useState<string>('');
+  const [verbosity, setVerbosity] = useState<'brief' | 'detailed'>('brief');
+  const [memorySummary, setMemorySummary] = useState<string>('');
+  const [patientAgent, setPatientAgent] = useState<
+    'latino-veteran' | 'black-woman-trauma'
+  >('latino-veteran');
+  const lastUserRef = useRef<string>('');
+  const patientAgentRef = useRef(patientAgent);
+
+  // Update ref when patientAgent changes
+  useEffect(() => {
+    patientAgentRef.current = patientAgent;
+    console.log('=== PATIENT AGENT STATE CHANGED ===');
+    console.log('New patientAgent:', patientAgent);
+    console.log('==================================');
+  }, [patientAgent]);
+
+  // Reset patient agent when chat ID changes
+  // useEffect(() => {
+  //   setPatientAgent('latino-veteran');
+  //   setMemorySummary('');
+  // }, [patientAgent]);
+
+  // Load consultant notes from database
+  const { data: consultantNotesData, mutate: mutateConsultantNotes } = useSWR<{
+    notes: Array<{
+      id: string;
+      title: string;
+      summary: string;
+      details?: string;
+      priority: 'green' | 'yellow' | 'red';
+      createdAt: string;
+    }>;
+  }>(`/api/consultant-notes?chatId=${id}`, fetcher);
+
+  const consultantNotes = consultantNotesData?.notes || [];
 
   const {
     messages,
@@ -67,12 +103,28 @@ export function Chat({
       api: '/api/chat',
       fetch: fetchWithErrorHandlers,
       prepareSendMessagesRequest({ messages, id, body }) {
+        const last = messages.at(-1);
+        const lastUserText =
+          last?.role === 'user'
+            ? (last.parts ?? [])
+                .filter((p: any) => p?.type === 'text')
+                .map((p: any) => p.text)
+                .join('\n')
+            : '';
+        if (lastUserText) lastUserRef.current = lastUserText;
+
+        // Debug: Log what's being sent
+        console.log('=== FRONTEND DEBUG ===');
+        console.log('patientAgent being sent:', patientAgentRef.current);
+        console.log('========================');
+
         return {
           body: {
             id,
-            message: messages.at(-1),
+            message: last,
             selectedChatModel: initialChatModel,
             selectedVisibilityType: visibilityType,
+            patientAgent: patientAgentRef.current, // Pass the selected patient agent
             ...body,
           },
         };
@@ -81,19 +133,103 @@ export function Chat({
     onData: (dataPart) => {
       setDataStream((ds) => (ds ? [...ds, dataPart] : []));
     },
-    onFinish: () => {
+    onFinish: async () => {
+      // Get the latest user message from lastUserRef
+      const latestUserMessage = lastUserRef.current;
+
+      // Get the latest assistant response from the dataStream
+      const latestAssistantResponse =
+        dataStream
+          ?.filter((part: any) => part.type === 'text-delta')
+          ?.map((part: any) => part.delta)
+          ?.join('') || '';
+
+      console.log('=== CHAT ONFINISH DEBUG ===');
+      console.log('Latest user message:', latestUserMessage);
+      console.log('Latest assistant response:', latestAssistantResponse);
+      console.log('Messages array length:', messages.length);
+      console.log('Data stream length:', dataStream?.length);
+      console.log('================================');
+
+      // Construct the full conversation history
+      const fullConversationHistory = [
+        ...messages,
+        // Add the latest exchange if we have both user and assistant messages
+        ...(latestUserMessage && latestAssistantResponse
+          ? [
+              {
+                role: 'user' as const,
+                parts: [{ type: 'text', text: latestUserMessage }],
+              },
+              {
+                role: 'assistant' as const,
+                parts: [{ type: 'text', text: latestAssistantResponse }],
+              },
+            ]
+          : []),
+      ];
+
+      // Tiny summary memory
+      const nextMem = `Last turn → therapist: "${truncate(latestUserMessage, 120)}"; patient: "${truncate(
+        latestAssistantResponse,
+        120,
+      )}"`;
+      setMemorySummary(nextMem);
+
+      // Get consultant note
+      try {
+        const res = await fetch('/api/consultant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationHistory: fullConversationHistory,
+            memorySummary: nextMem,
+            verbosity,
+          }),
+        });
+
+        if (!res.ok) {
+          console.error('Consultant API error:', res.status, res.statusText);
+          return;
+        }
+
+        const data = (await res.json()) as {
+          consultantNote: {
+            title: string;
+            summary: string;
+            details?: string;
+            priority: 'green' | 'yellow' | 'red';
+          };
+        };
+        console.log('Consultant note received:', data.consultantNote);
+
+        // Save consultant note to database
+        await fetch('/api/consultant-notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chatId: id,
+            title: data.consultantNote.title,
+            summary: data.consultantNote.summary,
+            details: data.consultantNote.details,
+            priority: data.consultantNote.priority,
+          }),
+        });
+
+        // Refresh consultant notes data
+        mutateConsultantNotes();
+      } catch (error) {
+        console.error('Error calling consultant API:', error);
+      }
+
       mutate(unstable_serialize(getChatHistoryPaginationKey));
     },
     onError: (error) => {
       if (error instanceof ChatSDKError) {
-        toast({
-          type: 'error',
-          description: error.message,
-        });
+        toast({ type: 'error', description: error.message });
       }
     },
   });
-
   const searchParams = useSearchParams();
   const query = searchParams.get('query');
 
@@ -126,47 +262,106 @@ export function Chat({
     setMessages,
   });
 
+  function truncate(s: string, n: number) {
+    return s.length > n ? s.slice(0, n) + '…' : s;
+  }
+  console.log('patientAgent', patientAgent);
+
   return (
     <>
-      <div className="flex flex-col min-w-0 h-dvh bg-background">
-        <ChatHeader
-          chatId={id}
-          selectedModelId={initialChatModel}
-          selectedVisibilityType={initialVisibilityType}
-          isReadonly={isReadonly}
-          session={session}
-        />
+      <div className="grid grid-cols-12 min-w-0 h-dvh bg-background">
+        {/* LEFT: your existing chat layout */}
+        <div className="col-span-8 flex flex-col min-w-0">
+          <ChatHeader
+            chatId={id}
+            selectedModelId={initialChatModel}
+            selectedVisibilityType={initialVisibilityType}
+            isReadonly={isReadonly}
+            session={session}
+          />
 
-        <Messages
-          chatId={id}
-          status={status}
-          votes={votes}
-          messages={messages}
-          setMessages={setMessages}
-          regenerate={regenerate}
-          isReadonly={isReadonly}
-          isArtifactVisible={isArtifactVisible}
-        />
+          {/* Patient Agent Selector */}
+          <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
+            <span className="font-medium">Patient Agent:</span>
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={patientAgent}
+              onChange={(e) =>
+                setPatientAgent(
+                  e.target.value as 'latino-veteran' | 'black-woman-trauma',
+                )
+              }
+            >
+              <option value="latino-veteran">
+                Carlos Rodriguez (Latino Veteran - Beginner)
+              </option>
+              <option value="black-woman-trauma">
+                Michelle Johnson (Black Woman - Intermediate)
+              </option>
+            </select>
+          </div>
 
-        <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-          {!isReadonly && (
-            <MultimodalInput
-              chatId={id}
-              input={input}
-              setInput={setInput}
-              status={status}
-              stop={stop}
-              attachments={attachments}
-              setAttachments={setAttachments}
-              messages={messages}
-              setMessages={setMessages}
-              sendMessage={sendMessage}
-              selectedVisibilityType={visibilityType}
-            />
-          )}
-        </form>
+          <Messages
+            chatId={id}
+            status={status}
+            votes={votes}
+            messages={messages}
+            setMessages={setMessages}
+            regenerate={regenerate}
+            isReadonly={isReadonly}
+            isArtifactVisible={isArtifactVisible}
+          />
+
+          <form className="flex w-full mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w/full md:max-w-3xl">
+            {!isReadonly && (
+              <MultimodalInput
+                chatId={id}
+                input={input}
+                setInput={setInput}
+                status={status}
+                stop={stop}
+                attachments={attachments}
+                setAttachments={setAttachments}
+                messages={messages}
+                setMessages={setMessages}
+                sendMessage={sendMessage}
+                selectedVisibilityType={visibilityType}
+              />
+            )}
+          </form>
+        </div>
+
+        {/* RIGHT: AI Consultant */}
+        <aside className="col-span-4 border-l flex flex-col h-full">
+          <div className="sticky top-0 z-10 bg-background">
+            <div className="p-3 flex items-center justify-between border-b">
+              <span className="font-medium">AI Consultant</span>
+            </div>
+
+            {/* Sticky latest note */}
+            {consultantNotes.length > 0 && (
+              <div className="p-3 border-b bg-background">
+                <ConsultantNoteCard
+                  chatId={id}
+                  note={consultantNotes[consultantNotes.length - 1]}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {consultantNotes.map((n) => (
+              <ConsultantNoteCard key={n.id} chatId={id} note={n} />
+            ))}
+          </div>
+
+          <div className="sticky bottom-0 z-10 p-3 text-xs text-muted-foreground border-t bg-background">
+            <b>Memory:</b> {memorySummary || '—'}
+          </div>
+        </aside>
       </div>
 
+      {/* Keep Artifact block as-is if you use it */}
       <Artifact
         chatId={id}
         input={input}

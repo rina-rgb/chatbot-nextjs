@@ -42,6 +42,57 @@ export const maxDuration = 60;
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
+// Simulated Patient Agents with specific roles and characteristics
+const PATIENT_AGENTS = {
+  'latino-veteran': {
+    name: 'Carlos Rodriguez',
+    description:
+      'Latino male combat veteran in his early thirties with no psychological comorbidities',
+    complexity: 'beginner',
+    systemPrompt: `
+    You are Carlos Rodriguez, a 32-year-old Latino male combat veteran participating in Written Exposure Therapy (WET).
+    You served in Afghanistan and experienced combat trauma. You have no psychological comorbidities and represent a beginner level of clinical complexity.
+
+    CHARACTERISTICS:
+    - Latino male, early thirties
+    - Combat veteran (Afghanistan)
+    - No psychological comorbidities
+    - Beginner level clinical complexity
+    - Speaks with occasional Spanish phrases or cultural references
+    - Respectful but sometimes guarded about military experiences
+    - Values family and community support
+
+    SPEAK ONLY as Carlos. Be realistic, concise, and authentic to his character. Do NOT give therapist advice or meta-analysis.
+    Respond as if you are Carlos sharing his thoughts, feelings, and experiences during the therapy session.
+    `,
+  },
+  'black-woman-trauma': {
+    name: 'Michelle Johnson',
+    description:
+      'Middle-aged Black woman with history of sexual trauma, intimate partner violence, and substance use disorder',
+    complexity: 'intermediate',
+    systemPrompt: `
+    You are Michelle Johnson, a 45-year-old Black woman participating in Written Exposure Therapy (WET).
+    You have a history of sexual trauma, intimate partner violence, and substance use disorder. You represent an intermediate level of clinical complexity.
+
+    CHARACTERISTICS:
+    - Black woman, middle-aged (45)
+    - History of sexual trauma
+    - Survivor of intimate partner violence
+    - Substance use disorder (in recovery)
+    - Intermediate level clinical complexity
+    - May show reluctance to engage in writing assignments
+    - Risk of return to substance use
+    - Occasional suicidal ideation
+    - Strong but vulnerable, with moments of resistance
+    - Cultural background influences her perspective and coping mechanisms
+
+    SPEAK ONLY as Michelle. Be realistic, concise, and authentic to her character. Do NOT give therapist advice or meta-analysis.
+    Respond as if you are Michelle sharing her thoughts, feelings, and experiences during the therapy session.
+    `,
+  },
+};
+
 export function getStreamContext() {
   if (!globalStreamContext) {
     try {
@@ -78,11 +129,13 @@ export async function POST(request: Request) {
       message,
       selectedChatModel,
       selectedVisibilityType,
+      patientAgent,
     }: {
       id: string;
       message: ChatMessage;
       selectedChatModel: ChatModel['id'];
       selectedVisibilityType: VisibilityType;
+      patientAgent?: 'latino-veteran' | 'black-woman-trauma';
     } = requestBody;
 
     const session = await auth();
@@ -137,7 +190,7 @@ export async function POST(request: Request) {
       messages: [
         {
           chatId: id,
-          id: message.id,
+          id: generateUUID(), // Use generateUUID() instead of message.id
           role: 'user',
           parts: message.parts,
           attachments: [],
@@ -151,9 +204,35 @@ export async function POST(request: Request) {
 
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
+        // Debug: Log the patientAgent value
+        console.log('=== PATIENT AGENT DEBUG ===');
+        console.log('patientAgent:', patientAgent);
+        console.log('PATIENT_AGENTS keys:', Object.keys(PATIENT_AGENTS));
+        console.log(
+          'PATIENT_AGENTS[patientAgent]:',
+          patientAgent &&
+            PATIENT_AGENTS[patientAgent as keyof typeof PATIENT_AGENTS],
+        );
+        console.log('================================');
+
+        // Use patient agent system prompt if patientAgent is selected, otherwise use default
+        const selectedSystemPrompt =
+          patientAgent && patientAgent in PATIENT_AGENTS
+            ? PATIENT_AGENTS[patientAgent as keyof typeof PATIENT_AGENTS]
+                .systemPrompt
+            : systemPrompt({ selectedChatModel, requestHints });
+
+        console.log('=== SYSTEM PROMPT DEBUG ===');
+        console.log('Using patient agent:', patientAgent ? 'YES' : 'NO');
+        console.log(
+          'System prompt preview:',
+          selectedSystemPrompt.substring(0, 100) + '...',
+        );
+        console.log('================================');
+
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: selectedSystemPrompt,
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
           experimental_activeTools:
@@ -209,19 +288,25 @@ export async function POST(request: Request) {
 
     const streamContext = getStreamContext();
 
-    if (streamContext) {
-      return new Response(
-        await streamContext.resumableStream(streamId, () =>
-          stream.pipeThrough(new JsonToSseTransformStream()),
-        ),
-      );
-    } else {
-      return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
-    }
+    // Temporarily disable resumable streams to fix the 500 error
+    // if (streamContext) {
+    //   return new Response(
+    //     await streamContext.resumableStream(streamId, () =>
+    //       stream.pipeThrough(new JsonToSseTransformStream()),
+    //     ),
+    //   );
+    // } else {
+    //   return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
+    // }
+
+    // Always use regular response for now
+    return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
   } catch (error) {
     if (error instanceof ChatSDKError) {
       return error.toResponse();
     }
+    console.error('Chat API error:', error);
+    return new ChatSDKError('bad_request:chat').toResponse();
   }
 }
 

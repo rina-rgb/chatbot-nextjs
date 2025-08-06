@@ -3,7 +3,7 @@
 
 import type { Session } from 'next-auth';
 import type { UserType } from '@/app/(auth)/auth';
-import { getUser, createGuestUser } from '@/lib/db/queries';
+import { getUser } from '@/lib/db/queries';
 
 export function createMockSession(): Session {
   return {

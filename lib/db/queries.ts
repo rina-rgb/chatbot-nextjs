@@ -27,6 +27,8 @@ import {
   type DBMessage,
   type Chat,
   stream,
+  consultantNote,
+  consultantNoteVote,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -118,16 +120,32 @@ export async function saveChat({
 
 export async function deleteChatById({ id }: { id: string }) {
   try {
+    // Delete in order to avoid foreign key constraint issues
+    // First delete votes that reference messages
     await db.delete(vote).where(eq(vote.chatId, id));
+
+    // Then delete consultant note votes that reference consultant notes
+    await db
+      .delete(consultantNoteVote)
+      .where(eq(consultantNoteVote.chatId, id));
+
+    // Then delete consultant notes
+    await db.delete(consultantNote).where(eq(consultantNote.chatId, id));
+
+    // Then delete messages
     await db.delete(message).where(eq(message.chatId, id));
+
+    // Then delete streams
     await db.delete(stream).where(eq(stream.chatId, id));
 
+    // Finally delete the chat
     const [chatsDeleted] = await db
       .delete(chat)
       .where(eq(chat.id, id))
       .returning();
     return chatsDeleted;
   } catch (error) {
+    console.error('Delete chat error:', error);
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to delete chat by id',
@@ -441,7 +459,9 @@ export async function deleteMessagesByChatIdAfterTimestamp({
         and(eq(message.chatId, chatId), gte(message.createdAt, timestamp)),
       );
 
-    const messageIds = messagesToDelete.map((message) => message.id);
+    const messageIds = messagesToDelete.map(
+      (message: { id: string }) => message.id,
+    );
 
     if (messageIds.length > 0) {
       await db
@@ -533,18 +553,117 @@ export async function createStreamId({
 
 export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
   try {
-    const streamIds = await db
-      .select({ id: stream.id })
-      .from(stream)
-      .where(eq(stream.chatId, chatId))
-      .orderBy(asc(stream.createdAt))
-      .execute();
-
-    return streamIds.map(({ id }) => id);
+    return await db.select().from(stream).where(eq(stream.chatId, chatId));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get stream ids by chat id',
+    );
+  }
+}
+
+export async function saveConsultantNote({
+  chatId,
+  title,
+  summary,
+  details,
+  priority,
+}: {
+  chatId: string;
+  title: string;
+  summary: string;
+  details?: string;
+  priority: 'green' | 'yellow' | 'red';
+}) {
+  try {
+    const [note] = await db
+      .insert(consultantNote)
+      .values({
+        chatId,
+        title,
+        summary,
+        details,
+        priority,
+        createdAt: new Date(),
+      })
+      .returning();
+    return note;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to save consultant note',
+    );
+  }
+}
+
+export async function getConsultantNotesByChatId({
+  chatId,
+}: { chatId: string }) {
+  try {
+    return await db
+      .select()
+      .from(consultantNote)
+      .where(eq(consultantNote.chatId, chatId))
+      .orderBy(asc(consultantNote.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get consultant notes by chat id',
+    );
+  }
+}
+
+export async function voteConsultantNote({
+  chatId,
+  noteId,
+  type,
+}: {
+  chatId: string;
+  noteId: string;
+  type: 'up' | 'down';
+}) {
+  try {
+    const [existingVote] = await db
+      .select()
+      .from(consultantNoteVote)
+      .where(and(eq(consultantNoteVote.noteId, noteId)));
+
+    if (existingVote) {
+      return await db
+        .update(consultantNoteVote)
+        .set({ isUpvoted: type === 'up' })
+        .where(
+          and(
+            eq(consultantNoteVote.noteId, noteId),
+            eq(consultantNoteVote.chatId, chatId),
+          ),
+        );
+    }
+    return await db.insert(consultantNoteVote).values({
+      chatId,
+      noteId,
+      isUpvoted: type === 'up',
+    });
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to vote consultant note',
+    );
+  }
+}
+
+export async function getConsultantNoteVotesByChatId({
+  chatId,
+}: { chatId: string }) {
+  try {
+    return await db
+      .select()
+      .from(consultantNoteVote)
+      .where(eq(consultantNoteVote.chatId, chatId));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get consultant note votes by chat id',
     );
   }
 }
