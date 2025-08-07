@@ -226,7 +226,7 @@ export async function POST(request: Request) {
         console.log('Using patient agent:', patientAgent ? 'YES' : 'NO');
         console.log(
           'System prompt preview:',
-          selectedSystemPrompt.substring(0, 100) + '...',
+          `${selectedSystemPrompt.substring(0, 100)}...`,
         );
         console.log('================================');
 
@@ -286,7 +286,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const streamContext = getStreamContext();
+    const _streamContext = getStreamContext();
 
     // Temporarily disable resumable streams to fix the 500 error
     // if (streamContext) {

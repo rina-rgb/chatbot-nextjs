@@ -23,6 +23,7 @@ import { ChatSDKError } from '@/lib/errors';
 import type { Attachment, ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
 import { ConsultantNoteCard } from './consultant-note-card';
+import { VoiceChatPipecat } from './voice-chat-pipecat';
 
 export function Chat({
   id,
@@ -50,7 +51,7 @@ export function Chat({
   const { dataStream, setDataStream } = useDataStream();
 
   const [input, setInput] = useState<string>('');
-  const [verbosity, setVerbosity] = useState<'brief' | 'detailed'>('brief');
+  const [verbosity, _setVerbosity] = useState<'brief' | 'detailed'>('brief');
   const [memorySummary, setMemorySummary] = useState<string>('');
   const [patientAgent, setPatientAgent] = useState<
     'latino-veteran' | 'black-woman-trauma'
@@ -253,6 +254,7 @@ export function Chat({
   );
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
 
   useAutoResume({
@@ -263,7 +265,7 @@ export function Chat({
   });
 
   function truncate(s: string, n: number) {
-    return s.length > n ? s.slice(0, n) + '…' : s;
+    return s.length > n ? `${s.slice(0, n)}…` : s;
   }
   console.log('patientAgent', patientAgent);
 
@@ -326,9 +328,20 @@ export function Chat({
                 setMessages={setMessages}
                 sendMessage={sendMessage}
                 selectedVisibilityType={visibilityType}
+                onToggleVoiceChat={() => setIsVoiceChatOpen(!isVoiceChatOpen)}
               />
             )}
           </form>
+
+          {/* Voice Chat Panel */}
+          {isVoiceChatOpen && (
+            <div className="px-4 pb-4 w-full mx-auto md:max-w-3xl">
+              <VoiceChatPipecat
+                apiKey={process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY || ''}
+                className="w-full"
+              />
+            </div>
+          )}
         </div>
 
         {/* RIGHT: AI Consultant */}

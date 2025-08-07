@@ -13,7 +13,7 @@ export const Greeting = () => {
         transition={{ delay: 0.5 }}
         className="text-2xl font-semibold"
       >
-        Hello there!
+        Welcome to your training session!
       </motion.div>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -22,8 +22,9 @@ export const Greeting = () => {
         transition={{ delay: 0.6 }}
         className="text-2xl text-zinc-500"
       >
-        How can I help you today?
+        Select the patient persona above (deafult: Carlos).
       </motion.div>
+      
     </div>
   );
 };
