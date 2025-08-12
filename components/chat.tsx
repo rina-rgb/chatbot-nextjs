@@ -23,7 +23,6 @@ import { ChatSDKError } from '@/lib/errors';
 import type { Attachment, ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
 import { ConsultantNoteCard } from './consultant-note-card';
-import { VoiceChatPipecat } from './voice-chat-pipecat';
 
 export function Chat({
   id,
@@ -66,12 +65,6 @@ export function Chat({
     console.log('New patientAgent:', patientAgent);
     console.log('==================================');
   }, [patientAgent]);
-
-  // Reset patient agent when chat ID changes
-  // useEffect(() => {
-  //   setPatientAgent('latino-veteran');
-  //   setMemorySummary('');
-  // }, [patientAgent]);
 
   // Load consultant notes from database
   const { data: consultantNotesData, mutate: mutateConsultantNotes } = useSWR<{
@@ -254,7 +247,6 @@ export function Chat({
   );
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
-  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
 
   useAutoResume({
@@ -328,20 +320,9 @@ export function Chat({
                 setMessages={setMessages}
                 sendMessage={sendMessage}
                 selectedVisibilityType={visibilityType}
-                onToggleVoiceChat={() => setIsVoiceChatOpen(!isVoiceChatOpen)}
               />
             )}
           </form>
-
-          {/* Voice Chat Panel */}
-          {isVoiceChatOpen && (
-            <div className="px-4 pb-4 w-full mx-auto md:max-w-3xl">
-              <VoiceChatPipecat
-                apiKey={process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY || ''}
-                className="w-full"
-              />
-            </div>
-          )}
         </div>
 
         {/* RIGHT: AI Consultant */}

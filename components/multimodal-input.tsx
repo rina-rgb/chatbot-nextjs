@@ -24,10 +24,48 @@ import { SuggestedActions } from './suggested-actions';
 import equal from 'fast-deep-equal';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowDown, Mic } from 'lucide-react';
+import { ArrowDown, Mic, Check, X } from 'lucide-react';
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
 import type { VisibilityType } from './visibility-selector';
 import type { Attachment, ChatMessage } from '@/lib/types';
+
+// Minimal Web Speech API type declarations for cross-browser support
+type Ctor<T> = new () => T;
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+interface SpeechRecognitionResult {
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+  isFinal?: boolean;
+}
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+interface SpeechRecognition extends EventTarget {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+declare global {
+  interface Window {
+    SpeechRecognition?: Ctor<SpeechRecognition>;
+    webkitSpeechRecognition?: Ctor<SpeechRecognition>;
+  }
+}
 
 function PureMultimodalInput({
   chatId,
@@ -42,7 +80,6 @@ function PureMultimodalInput({
   sendMessage,
   className,
   selectedVisibilityType,
-  onToggleVoiceChat,
 }: {
   chatId: string;
   input: string;
@@ -56,7 +93,6 @@ function PureMultimodalInput({
   sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   className?: string;
   selectedVisibilityType: VisibilityType;
-  onToggleVoiceChat?: () => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -209,6 +245,102 @@ function PureMultimodalInput({
     }
   }, [status, scrollToBottom]);
 
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [listeningTranscript, setListeningTranscript] = useState('');
+  const keepAliveRef = useRef(false);
+
+  const startListening = useCallback(() => {
+    try {
+      const hasWindow = typeof window !== 'undefined';
+      if (!hasWindow) return;
+
+      // Prefer native, fall back to webkit vendor prefix
+      const RecognitionCtor =
+        (
+          window as unknown as {
+            SpeechRecognition?: new () => SpeechRecognition;
+          }
+        ).SpeechRecognition ||
+        (
+          window as unknown as {
+            webkitSpeechRecognition?: new () => SpeechRecognition;
+          }
+        ).webkitSpeechRecognition;
+
+      if (!RecognitionCtor) {
+        toast.error('Speech recognition is not supported in this browser');
+        return;
+      }
+
+      const recognition = new RecognitionCtor();
+      recognition.lang = navigator.language || 'en-US';
+      recognition.interimResults = true;
+      recognition.continuous = true; // keep listening until finished/cancelled
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = Array.from(event.results)
+          .map((r) => r[0]?.transcript ?? '')
+          .join(' ')
+          .trim();
+        setListeningTranscript(transcript);
+      };
+
+      recognition.onerror = (e: Event) => {
+        console.error('Speech recognition error:', e);
+        toast.error('Speech recognition error');
+        setIsListening(false);
+        recognitionRef.current = null;
+      };
+
+      recognition.onend = () => {
+        // If user hasn't finished/cancelled, keep listening
+        if (keepAliveRef.current) {
+          try {
+            recognition.start();
+            return;
+          } catch {
+            // if restart fails, fall through to cleanup
+          }
+        }
+        setIsListening(false);
+        recognitionRef.current = null;
+      };
+
+      recognitionRef.current = recognition;
+      keepAliveRef.current = true;
+      setListeningTranscript('');
+      setIsListening(true);
+      recognition.start();
+    } catch (error: unknown) {
+      console.error('Could not start speech recognition:', error);
+      toast.error('Could not start speech recognition');
+      setIsListening(false);
+      recognitionRef.current = null;
+    }
+  }, []);
+
+  const cancelListening = useCallback(() => {
+    keepAliveRef.current = false;
+    setListeningTranscript('');
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
+    setIsListening(false);
+    recognitionRef.current = null;
+  }, []);
+
+  const finishListening = useCallback(() => {
+    keepAliveRef.current = false;
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
+    const committed = listeningTranscript.trim();
+    if (committed) setInput(committed);
+    setIsListening(false);
+    recognitionRef.current = null;
+  }, [listeningTranscript, setInput]);
+
   return (
     <div className="relative w-full flex flex-col gap-4">
       <AnimatePresence>
@@ -218,11 +350,10 @@ function PureMultimodalInput({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className="absolute left-1/2 bottom-28 -translate-x-1/2 z-50"
           >
             <Button
               data-testid="scroll-to-bottom-button"
-              className="rounded-full"
+              className="rounded-full absolute left-1/2 bottom-28 -translate-x-1/2 z-50"
               size="icon"
               variant="outline"
               onClick={(event) => {
@@ -308,8 +439,43 @@ function PureMultimodalInput({
       />
 
       <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start gap-1">
-        <AttachmentsButton fileInputRef={fileInputRef} status={status} />
-        {onToggleVoiceChat && <VoiceButton onToggleVoiceChat={onToggleVoiceChat} status={status} />}
+        {isListening ? (
+          <>
+            <Button
+              data-testid="voice-cancel"
+              className="rounded-md p-[7px] h-fit"
+              variant="ghost"
+              onClick={(e) => {
+                e.preventDefault();
+                cancelListening();
+              }}
+              title="Cancel"
+            >
+              <X size={14} />
+            </Button>
+            <Button
+              data-testid="voice-finish"
+              className="rounded-md p-[7px] h-fit"
+              variant="ghost"
+              onClick={(e) => {
+                e.preventDefault();
+                finishListening();
+              }}
+              title="Finish"
+            >
+              <Check size={14} />
+            </Button>
+          </>
+        ) : (
+          <VoiceButton
+            isRecording={false}
+            onClick={() => {
+              startListening();
+            }}
+            status={status}
+            disabled={status !== 'ready'}
+          />
+        )}
       </div>
 
       <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
@@ -363,7 +529,7 @@ function PureAttachmentsButton({
   );
 }
 
-const AttachmentsButton = memo(PureAttachmentsButton);
+// const AttachmentsButton = memo(PureAttachmentsButton);
 
 function PureStopButton({
   stop,
@@ -421,11 +587,15 @@ const SendButton = memo(PureSendButton, (prevProps, nextProps) => {
 });
 
 function PureVoiceButton({
-  onToggleVoiceChat,
+  isRecording,
+  onClick,
   status,
+  disabled,
 }: {
-  onToggleVoiceChat: () => void;
+  isRecording: boolean;
+  onClick: () => void;
   status: UseChatHelpers<ChatMessage>['status'];
+  disabled?: boolean;
 }) {
   return (
     <Button
@@ -433,13 +603,13 @@ function PureVoiceButton({
       className="rounded-md p-[7px] h-fit dark:border-zinc-700 hover:dark:bg-zinc-900 hover:bg-zinc-200"
       onClick={(event) => {
         event.preventDefault();
-        onToggleVoiceChat();
+        onClick();
       }}
-      disabled={status !== 'ready'}
+      disabled={disabled ?? status !== 'ready'}
       variant="ghost"
-      title="Toggle voice chat"
+      title={isRecording ? 'Finish recording' : 'Start recording'}
     >
-      <Mic size={14} />
+      {isRecording ? <Check size={14} /> : <Mic size={14} />}
     </Button>
   );
 }
