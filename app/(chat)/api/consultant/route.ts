@@ -81,6 +81,7 @@ AVOID:
 RED FLAG TRIGGERS (immediate red priority):
 - Therapist asking non-therapeutic questions (e.g., "do you know NextJS?", "can you do math?")
 - Therapist engaging in casual conversation unrelated to WET therapy
+- Therapist using unprofessional language or tone (slang, text-speak, emojis, filler words like "yo", "sup", "okok", "lol", "bruh", excessive exclamation, elongated words)
 - Therapist making inappropriate personal comments or boundary violations
 - Therapist ignoring patient's trauma symptoms or safety concerns
 - Therapist using non-evidence-based approaches that contradict WET principles
@@ -148,7 +149,7 @@ export async function POST(req: NextRequest) {
         role: 'user' as const,
         content: `Conversation context:\n\n${conversationText}\n\nINSTRUCTIONS: Use the full conversation as context to understand progress and patterns, but provide feedback focused on the MOST RECENT exchange. Give specific guidance for the therapist's next move based on the patient's latest response. Do not repeat feedback about previous exchanges - use them only for context. 
 
-CRITICAL: The therapist is training in WET (Written Exposure Therapy) for trauma treatment. If the therapist goes off-topic (e.g., asks about programming, math, or engages in non-therapeutic conversation), immediately flag this as RED priority. Focus feedback on WET-specific techniques, trauma processing, and therapeutic boundaries. Respond with valid JSON only.`,
+CRITICAL: The therapist is training in WET (Written Exposure Therapy) for trauma treatment. If the therapist goes off-topic (e.g., asks about programming, math, or engages in non-therapeutic conversation), or uses unprofessional language, immediately flag this as RED priority and provide a brief, direct correction. Focus feedback on WET-specific techniques, trauma processing, and therapeutic boundaries. Respond with valid JSON only.`,
       },
     ],
     temperature: 0.7,
