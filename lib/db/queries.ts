@@ -48,7 +48,6 @@ try {
   if (process.env.POSTGRES_URL) {
     client = postgres(process.env.POSTGRES_URL);
     db = drizzle(client);
-    console.log('✅ Connected to PostgreSQL database');
   } else {
     console.error('❌ POSTGRES_URL not found in environment variables');
   }
@@ -504,7 +503,10 @@ export async function updateChatVisiblityById({
 export async function getMessageCountByUserId({
   id,
   differenceInHours,
-}: { id: string; differenceInHours: number }) {
+}: {
+  id: string;
+  differenceInHours: number;
+}) {
   try {
     const twentyFourHoursAgo = new Date(
       Date.now() - differenceInHours * 60 * 60 * 1000,
@@ -598,7 +600,9 @@ export async function saveConsultantNote({
 
 export async function getConsultantNotesByChatId({
   chatId,
-}: { chatId: string }) {
+}: {
+  chatId: string;
+}) {
   try {
     return await db
       .select()
@@ -654,7 +658,9 @@ export async function voteConsultantNote({
 
 export async function getConsultantNoteVotesByChatId({
   chatId,
-}: { chatId: string }) {
+}: {
+  chatId: string;
+}) {
   try {
     return await db
       .select()

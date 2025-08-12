@@ -1,3 +1,5 @@
+'use client';
+
 import Form from 'next/form';
 
 import { Input } from './ui/input';
@@ -7,12 +9,14 @@ export function AuthForm({
   action,
   children,
   defaultEmail = '',
+  pending = false,
 }: {
   action: NonNullable<
     string | ((formData: FormData) => void | Promise<void>) | undefined
   >;
   children: React.ReactNode;
   defaultEmail?: string;
+  pending?: boolean;
 }) {
   return (
     <Form action={action} className="flex flex-col gap-4 px-4 sm:px-16">
@@ -29,11 +33,12 @@ export function AuthForm({
           name="email"
           className="bg-muted text-md md:text-sm"
           type="email"
-          placeholder="user@acme.com"
+          placeholder="user@email.com"
           autoComplete="email"
           required
           autoFocus
           defaultValue={defaultEmail}
+          disabled={pending}
         />
       </div>
 
@@ -51,6 +56,7 @@ export function AuthForm({
           className="bg-muted text-md md:text-sm"
           type="password"
           required
+          disabled={pending}
         />
       </div>
 

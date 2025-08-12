@@ -154,31 +154,12 @@ export async function POST(request: Request) {
 
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
-        // Debug: Log the patientAgent value
-        console.log('=== PATIENT AGENT DEBUG ===');
-        console.log('patientAgent:', patientAgent);
-        console.log('PATIENT_AGENTS keys:', Object.keys(PATIENT_AGENTS));
-        console.log(
-          'PATIENT_AGENTS[patientAgent]:',
-          patientAgent &&
-            PATIENT_AGENTS[patientAgent as keyof typeof PATIENT_AGENTS],
-        );
-        console.log('================================');
-
         // Use patient agent system prompt if patientAgent is selected, otherwise use default
         const selectedSystemPrompt =
           patientAgent && patientAgent in PATIENT_AGENTS
             ? PATIENT_AGENTS[patientAgent as keyof typeof PATIENT_AGENTS]
                 .systemPrompt
             : systemPrompt({ selectedChatModel, requestHints });
-
-        console.log('=== SYSTEM PROMPT DEBUG ===');
-        console.log('Using patient agent:', patientAgent ? 'YES' : 'NO');
-        console.log(
-          'System prompt preview:',
-          `${selectedSystemPrompt.substring(0, 100)}...`,
-        );
-        console.log('================================');
 
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
@@ -238,18 +219,6 @@ export async function POST(request: Request) {
 
     const _streamContext = getStreamContext();
 
-    // Temporarily disable resumable streams to fix the 500 error
-    // if (streamContext) {
-    //   return new Response(
-    //     await streamContext.resumableStream(streamId, () =>
-    //       stream.pipeThrough(new JsonToSseTransformStream()),
-    //     ),
-    //   );
-    // } else {
-    //   return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
-    // }
-
-    // Always use regular response for now
     return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
   } catch (error) {
     if (error instanceof ChatSDKError) {

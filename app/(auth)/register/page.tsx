@@ -17,33 +17,44 @@ export default function Page() {
   const [email, setEmail] = useState('');
   const [isSuccessful, setIsSuccessful] = useState(false);
 
-  const [state, formAction] = useActionState<RegisterActionState, FormData>(
-    register,
-    {
-      status: 'idle',
-    },
-  );
+  const [state, formAction, isPending] = useActionState<
+    RegisterActionState,
+    FormData
+  >(register, {
+    status: 'idle',
+  });
 
   const { update: updateSession } = useSession();
 
   useEffect(() => {
-    if (state.status === 'user_exists') {
-      toast({ type: 'error', description: 'Account already exists!' });
-    } else if (state.status === 'failed') {
-      toast({ type: 'error', description: 'Failed to create account!' });
+    if (state.status === 'failed') {
+      toast({
+        type: 'error',
+        description: 'Failed to create account!',
+      });
     } else if (state.status === 'invalid_data') {
       toast({
         type: 'error',
         description: 'Failed validating your submission!',
       });
+    } else if (state.status === 'user_exists') {
+      toast({
+        type: 'error',
+        description: 'User already exists!',
+      });
     } else if (state.status === 'success') {
-      toast({ type: 'success', description: 'Account created successfully!' });
-
       setIsSuccessful(true);
-      updateSession();
-      router.refresh();
+      // Update session and redirect more reliably
+      updateSession()
+        .then(() => {
+          router.push('/');
+        })
+        .catch(() => {
+          // Fallback if session update fails
+          router.refresh();
+        });
     }
-  }, [state]);
+  }, [state.status, updateSession, router]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get('email') as string);
@@ -59,7 +70,11 @@ export default function Page() {
             Create an account with your email and password
           </p>
         </div>
-        <AuthForm action={handleSubmit} defaultEmail={email}>
+        <AuthForm
+          action={handleSubmit}
+          defaultEmail={email}
+          pending={isPending}
+        >
           <SubmitButton isSuccessful={isSuccessful}>Sign Up</SubmitButton>
           <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
             {'Already have an account? '}

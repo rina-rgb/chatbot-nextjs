@@ -2,7 +2,7 @@
 
 import { DefaultChatTransport } from 'ai';
 import { useChat } from '@ai-sdk/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
@@ -55,15 +55,14 @@ export function Chat({
   const [patientAgent, setPatientAgent] = useState<
     'latino-veteran' | 'black-woman-trauma'
   >('latino-veteran');
+  const [shouldCallConsultant, setShouldCallConsultant] =
+    useState<boolean>(false);
   const lastUserRef = useRef<string>('');
   const patientAgentRef = useRef(patientAgent);
 
   // Update ref when patientAgent changes
   useEffect(() => {
     patientAgentRef.current = patientAgent;
-    console.log('=== PATIENT AGENT STATE CHANGED ===');
-    console.log('New patientAgent:', patientAgent);
-    console.log('==================================');
   }, [patientAgent]);
 
   // Load consultant notes from database
@@ -79,6 +78,56 @@ export function Chat({
   }>(`/api/consultant-notes?chatId=${id}`, fetcher);
 
   const consultantNotes = consultantNotesData?.notes || [];
+
+  // Function to call consultant API
+  const callConsultant = useCallback(
+    async (conversationHistory: any[], memorySummary: string) => {
+      try {
+        const res = await fetch('/api/consultant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationHistory,
+            memorySummary,
+            verbosity,
+          }),
+        });
+
+        if (!res.ok) {
+          console.error('Consultant API error:', res.status, res.statusText);
+          return;
+        }
+
+        const data = (await res.json()) as {
+          consultantNote: {
+            title: string;
+            summary: string;
+            details?: string;
+            priority: 'green' | 'yellow' | 'red';
+          };
+        };
+
+        // Save consultant note to database
+        await fetch('/api/consultant-notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chatId: id,
+            title: data.consultantNote.title,
+            summary: data.consultantNote.summary,
+            details: data.consultantNote.details,
+            priority: data.consultantNote.priority,
+          }),
+        });
+
+        // Refresh consultant notes data
+        mutateConsultantNotes();
+      } catch (error) {
+        console.error('Error calling consultant API:', error);
+      }
+    },
+    [id, verbosity, mutateConsultantNotes],
+  );
 
   const {
     messages,
@@ -107,11 +156,6 @@ export function Chat({
             : '';
         if (lastUserText) lastUserRef.current = lastUserText;
 
-        // Debug: Log what's being sent
-        console.log('=== FRONTEND DEBUG ===');
-        console.log('patientAgent being sent:', patientAgentRef.current);
-        console.log('========================');
-
         return {
           body: {
             id,
@@ -138,31 +182,6 @@ export function Chat({
           ?.map((part: any) => part.delta)
           ?.join('') || '';
 
-      console.log('=== CHAT ONFINISH DEBUG ===');
-      console.log('Latest user message:', latestUserMessage);
-      console.log('Latest assistant response:', latestAssistantResponse);
-      console.log('Messages array length:', messages.length);
-      console.log('Data stream length:', dataStream?.length);
-      console.log('================================');
-
-      // Construct the full conversation history
-      const fullConversationHistory = [
-        ...messages,
-        // Add the latest exchange if we have both user and assistant messages
-        ...(latestUserMessage && latestAssistantResponse
-          ? [
-              {
-                role: 'user' as const,
-                parts: [{ type: 'text', text: latestUserMessage }],
-              },
-              {
-                role: 'assistant' as const,
-                parts: [{ type: 'text', text: latestAssistantResponse }],
-              },
-            ]
-          : []),
-      ];
-
       // Tiny summary memory
       const nextMem = `Last turn → therapist: "${truncate(latestUserMessage, 120)}"; patient: "${truncate(
         latestAssistantResponse,
@@ -170,51 +189,8 @@ export function Chat({
       )}"`;
       setMemorySummary(nextMem);
 
-      // Get consultant note
-      try {
-        const res = await fetch('/api/consultant', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationHistory: fullConversationHistory,
-            memorySummary: nextMem,
-            verbosity,
-          }),
-        });
-
-        if (!res.ok) {
-          console.error('Consultant API error:', res.status, res.statusText);
-          return;
-        }
-
-        const data = (await res.json()) as {
-          consultantNote: {
-            title: string;
-            summary: string;
-            details?: string;
-            priority: 'green' | 'yellow' | 'red';
-          };
-        };
-        console.log('Consultant note received:', data.consultantNote);
-
-        // Save consultant note to database
-        await fetch('/api/consultant-notes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chatId: id,
-            title: data.consultantNote.title,
-            summary: data.consultantNote.summary,
-            details: data.consultantNote.details,
-            priority: data.consultantNote.priority,
-          }),
-        });
-
-        // Refresh consultant notes data
-        mutateConsultantNotes();
-      } catch (error) {
-        console.error('Error calling consultant API:', error);
-      }
+      // Set flag to call consultant after patient responds
+      setShouldCallConsultant(true);
 
       mutate(unstable_serialize(getChatHistoryPaginationKey));
     },
@@ -224,6 +200,20 @@ export function Chat({
       }
     },
   });
+
+  // Call consultant when flag is set and we have conversation data
+  useEffect(() => {
+    if (shouldCallConsultant && messages.length > 0 && memorySummary) {
+      // Get the latest conversation history including the patient's response
+      const fullConversationHistory = messages.map((msg) => ({
+        role: msg.role,
+        parts: msg.parts,
+      }));
+
+      callConsultant(fullConversationHistory, memorySummary);
+      setShouldCallConsultant(false);
+    }
+  }, [shouldCallConsultant, messages, memorySummary, callConsultant]);
   const searchParams = useSearchParams();
   const query = searchParams.get('query');
 
@@ -259,12 +249,10 @@ export function Chat({
   function truncate(s: string, n: number) {
     return s.length > n ? `${s.slice(0, n)}…` : s;
   }
-  console.log('patientAgent', patientAgent);
 
   return (
     <>
       <div className="grid grid-cols-12 min-w-0 h-dvh bg-background">
-        {/* LEFT: your existing chat layout */}
         <div className="col-span-8 flex flex-col min-w-0">
           <ChatHeader
             chatId={id}
@@ -325,7 +313,7 @@ export function Chat({
           </form>
         </div>
 
-        {/* RIGHT: AI Consultant */}
+        {/* AI Consultant */}
         <aside className="col-span-4 border-l flex flex-col h-full">
           <div className="sticky top-0 z-10 bg-background">
             <div className="p-3 flex items-center justify-between border-b">
@@ -355,7 +343,6 @@ export function Chat({
         </aside>
       </div>
 
-      {/* Keep Artifact block as-is if you use it */}
       <Artifact
         chatId={id}
         input={input}

@@ -29,7 +29,7 @@ export function createMockAuth() {
       const newUser = await createUser('guest-123', generateUUID());
       console.log('✅ Mock user created:', newUser);
     }
-    
+
     // Get the actual user from the database
     const actualUsers = await getUser('guest-123');
     if (actualUsers.length > 0) {
@@ -44,7 +44,7 @@ export function createMockAuth() {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
       };
     }
-    
+
     return createMockSession();
   };
-} 
+}

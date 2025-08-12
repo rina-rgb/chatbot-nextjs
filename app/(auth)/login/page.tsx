@@ -17,12 +17,12 @@ export default function Page() {
   const [email, setEmail] = useState('');
   const [isSuccessful, setIsSuccessful] = useState(false);
 
-  const [state, formAction] = useActionState<LoginActionState, FormData>(
-    login,
-    {
-      status: 'idle',
-    },
-  );
+  const [state, formAction, isPending] = useActionState<
+    LoginActionState,
+    FormData
+  >(login, {
+    status: 'idle',
+  });
 
   const { update: updateSession } = useSession();
 
@@ -39,10 +39,17 @@ export default function Page() {
       });
     } else if (state.status === 'success') {
       setIsSuccessful(true);
-      updateSession();
-      router.refresh();
+      // Update session and redirect more reliably
+      updateSession()
+        .then(() => {
+          router.push('/');
+        })
+        .catch(() => {
+          // Fallback if session update fails
+          router.refresh();
+        });
     }
-  }, [state.status]);
+  }, [state.status, updateSession, router]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get('email') as string);
@@ -58,7 +65,11 @@ export default function Page() {
             Use your email and password to sign in
           </p>
         </div>
-        <AuthForm action={handleSubmit} defaultEmail={email}>
+        <AuthForm
+          action={handleSubmit}
+          defaultEmail={email}
+          pending={isPending}
+        >
           <SubmitButton isSuccessful={isSuccessful}>Sign in</SubmitButton>
           <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
             {"Don't have an account? "}
