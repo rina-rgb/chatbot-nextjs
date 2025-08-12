@@ -20,24 +20,28 @@ function PureSuggestedActions({
 }: SuggestedActionsProps) {
   const suggestedActions = [
     {
-      title: 'What are the advantages',
-      label: 'of using Next.js?',
-      action: 'What are the advantages of using Next.js?',
+      title: 'Treatment Rationale',
+      label: 'Explain WET and today’s plan',
+      action:
+        'Today, I’d like to talk with you about a treatment called Written Exposure Therapy (WET). It helps you process the trauma memory so it loses power over you. Today, I’ll explain the steps and then invite you to write about the event for about 30 minutes. I’ll be here while you write, and we’ll check in after. How does that sound?',
     },
     {
-      title: 'Write code to',
-      label: `demonstrate djikstra's algorithm`,
-      action: `Write code to demonstrate djikstra's algorithm`,
+      title: 'Safety + Consent',
+      label: 'Confirm readiness before starting',
+      action:
+        'Before we begin, I want to check on your safety and comfort. Are you safe today? Any concerns about hurting yourself or anyone else? We can pause at any time. Do I have your OK to begin WET now?',
     },
     {
-      title: 'Help me write an essay',
-      label: `about silicon valley`,
-      action: `Help me write an essay about silicon valley`,
+      title: 'Start Narrative',
+      label: 'Invite 30‑minute trauma writing',
+      action:
+        "When you're ready, please write continuously for about 30 minutes about the most distressing part of the event—the sights, sounds, thoughts, and feelings. Use as much detail as you can. If your mind wanders, gently bring it back to the event. I'm here while you write.",
     },
     {
-      title: 'What is the weather',
-      label: 'in San Francisco?',
-      action: 'What is the weather in San Francisco?',
+      title: 'Language & Culture',
+      label: 'Check preferences for comfort',
+      action:
+        'Is there a language or way of expressing yourself that feels most natural for you to use today? Any cultural or personal preferences you’d like me to keep in mind as we go?',
     },
   ];
 
@@ -47,14 +51,14 @@ function PureSuggestedActions({
       className="grid sm:grid-cols-2 gap-2 w-full"
     >
       {suggestedActions.map((suggestedAction, index) => (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ delay: 0.05 * index }}
-          key={`suggested-action-${suggestedAction.title}-${index}`}
-          className={index > 1 ? 'hidden sm:block' : 'block'}
-        >
+        <div className={index > 1 ? 'hidden sm:block' : 'block'}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ delay: 0.05 * index }}
+            key={`suggested-action-${suggestedAction.title}-${index}`}
+          >
           <Button
             variant="ghost"
             onClick={async () => {
@@ -72,7 +76,8 @@ function PureSuggestedActions({
               {suggestedAction.label}
             </span>
           </Button>
-        </motion.div>
+          </motion.div>
+        </div>
       ))}
     </div>
   );
