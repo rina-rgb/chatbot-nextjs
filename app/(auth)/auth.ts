@@ -89,7 +89,7 @@ const nextAuthInstance = NextAuth({
 
 // TEMPORARY: Use mock auth for MVP development
 // Set this to false to re-enable real authentication
-const USE_MOCK_AUTH = true;
+const USE_MOCK_AUTH = false;
 
 export const {
   handlers: { GET, POST },
