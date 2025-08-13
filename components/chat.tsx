@@ -323,6 +323,9 @@ export function Chat({
             {/* Sticky latest note */}
             {consultantNotes.length > 0 && (
               <div className="p-3 border-b bg-background">
+                <div className="text-[11px] uppercase tracking-wider font-semibold text-foreground/70 bg-muted px-2 py-1 rounded inline-block mb-2">
+                  Most recent note
+                </div>
                 <ConsultantNoteCard
                   chatId={id}
                   note={consultantNotes[consultantNotes.length - 1]}
@@ -332,8 +335,18 @@ export function Chat({
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
-            {consultantNotes.map((n) => (
-              <ConsultantNoteCard key={n.id} chatId={id} note={n} />
+            {consultantNotes.length > 1 && (
+              <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted/60 px-2 py-1 rounded inline-block mb-2">
+                Note history
+              </div>
+            )}
+            {consultantNotes.slice(0, -1).map((n) => (
+              <div
+                key={n.id}
+                className="opacity-70 hover:grayscale-0 transition"
+              >
+                <ConsultantNoteCard chatId={id} note={n} />
+              </div>
             ))}
           </div>
 
