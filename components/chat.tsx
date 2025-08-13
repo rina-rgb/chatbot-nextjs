@@ -317,6 +317,32 @@ export function Chat({
               <ConsultantEmptyPlaceholder />
             </div>
           )}
+          {consultantNotes.length > 0 && (
+            <div className="md:hidden border-t p-3">
+              <div className="mb-1.5">
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground bg-muted px-2 py-1 rounded">
+                  Most recent note
+                </span>
+              </div>
+              <ConsultantNoteCard
+                chatId={id}
+                note={consultantNotes[consultantNotes.length - 1]}
+                highlight
+              />
+              {consultantNotes.length > 1 && (
+                <>
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/60 px-2 py-1 rounded inline-block mt-3 mb-2">
+                    Note history
+                  </div>
+                  <div className="space-y-2 opacity-80">
+                    {consultantNotes.slice(0, -1).map((n) => (
+                      <ConsultantNoteCard key={n.id} chatId={id} note={n} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           <form className="flex w-full mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w/full md:max-w-3xl">
             {!isReadonly && (
@@ -353,6 +379,7 @@ export function Chat({
                 <ConsultantNoteCard
                   chatId={id}
                   note={consultantNotes[consultantNotes.length - 1]}
+                  highlight
                 />
               </div>
             )}
