@@ -138,6 +138,11 @@ function PureMultimodalInput({
     setLocalStorageInput(input);
   }, [input, setLocalStorageInput]);
 
+  // Ensure textarea resizes when input is updated programmatically (e.g., voice transcript)
+  useEffect(() => {
+    adjustHeight();
+  }, [input]);
+
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
     adjustHeight();
@@ -446,11 +451,11 @@ function PureMultimodalInput({
       <Textarea
         data-testid="multimodal-input"
         ref={textareaRef}
-        placeholder="Send a message..."
+        placeholder={isListening ? 'Recording…' : 'Send a message...'}
         value={input}
         onChange={handleInput}
         className={cx(
-          'min-h-[20px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted dark:border-zinc-700',
+          'min-h-[20px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted dark:border-zinc-700 w-full px-3 py-2 transition-[height] duration-200',
           className,
         )}
         rows={1}
@@ -473,54 +478,71 @@ function PureMultimodalInput({
       />
 
       <div className="absolute bottom-1 right-0 p-1 w-fit flex flex-row justify-end gap-3">
-        {status === 'submitted' ? (
-          <StopButton stop={stop} setMessages={setMessages} />
-        ) : (
-          <>
-            {!isListening ? (
-              <VoiceButton
-                isRecording={false}
-                onClick={() => {
-                  startListening();
-                }}
-                status={status}
-                disabled={status !== 'ready'}
-              />
-            ) : (
-              <>
-                <Button
-                  data-testid="voice-cancel"
-                  className="rounded-full p-[6px] h-fit"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    cancelListening();
-                  }}
-                  title="Cancel"
-                >
-                  <X size={14} />
-                </Button>
-                <Button
-                  data-testid="voice-finish"
-                  className="rounded-full p-[6px] h-fit"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    finishListening();
-                  }}
-                  title="Finish"
-                >
-                  <Check size={14} />
-                </Button>
-              </>
-            )}
-            <SendButton
-              input={input}
-              submitForm={submitForm}
-              uploadQueue={uploadQueue}
-            />
-          </>
+        {isListening && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+            className="flex items-center gap-2 text-xs text-red-600"
+          >
+            <span className="inline-block size-2 rounded-full bg-red-500 animate-pulse" />
+            <span>Recording…</span>
+          </motion.div>
         )}
+
+        <div className="ml-auto flex flex-row justify-end gap-3">
+          {status === 'submitted' ? (
+            <StopButton stop={stop} setMessages={setMessages} />
+          ) : (
+            <>
+              {!isListening ? (
+                <VoiceButton
+                  isRecording={false}
+                  onClick={() => {
+                    startListening();
+                  }}
+                  status={status}
+                  disabled={status !== 'ready'}
+                />
+              ) : (
+                <>
+                  <Button
+                    data-testid="voice-cancel"
+                    className="rounded-full p-[6px] h-fit border dark:border-zinc-600 hover:dark:bg-zinc-900 hover:bg-zinc-200 transition-colors transition-transform hover:scale-105 active:scale-95"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      cancelListening();
+                    }}
+                    title="Cancel"
+                    aria-label="Cancel recording"
+                  >
+                    <X size={14} />
+                  </Button>
+                  <Button
+                    data-testid="voice-finish"
+                    className="rounded-full p-[6px] h-fit border dark:border-zinc-600 hover:dark:bg-zinc-900 hover:bg-zinc-200 transition-colors transition-transform hover:scale-105 active:scale-95"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      finishListening();
+                    }}
+                    title="Finish"
+                    aria-label="Finish recording"
+                  >
+                    <Check size={14} />
+                  </Button>
+                </>
+              )}
+              <SendButton
+                input={input}
+                submitForm={submitForm}
+                uploadQueue={uploadQueue}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
