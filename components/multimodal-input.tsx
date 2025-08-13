@@ -416,10 +416,10 @@ function PureMultimodalInput({
         value={input}
         onChange={handleInput}
         className={cx(
-          'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted pb-10 dark:border-zinc-700',
+          'min-h-[20px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted dark:border-zinc-700',
           className,
         )}
-        rows={2}
+        rows={1}
         autoFocus
         onKeyDown={(event) => {
           if (
@@ -438,55 +438,54 @@ function PureMultimodalInput({
         }}
       />
 
-      <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start gap-1">
-        {isListening ? (
-          <>
-            <Button
-              data-testid="voice-cancel"
-              className="rounded-md p-[7px] h-fit"
-              variant="ghost"
-              onClick={(e) => {
-                e.preventDefault();
-                cancelListening();
-              }}
-              title="Cancel"
-            >
-              <X size={14} />
-            </Button>
-            <Button
-              data-testid="voice-finish"
-              className="rounded-md p-[7px] h-fit"
-              variant="ghost"
-              onClick={(e) => {
-                e.preventDefault();
-                finishListening();
-              }}
-              title="Finish"
-            >
-              <Check size={14} />
-            </Button>
-          </>
-        ) : (
-          <VoiceButton
-            isRecording={false}
-            onClick={() => {
-              startListening();
-            }}
-            status={status}
-            disabled={status !== 'ready'}
-          />
-        )}
-      </div>
-
-      <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
+      <div className="absolute bottom-1 right-0 p-1 w-fit flex flex-row justify-end gap-3">
         {status === 'submitted' ? (
           <StopButton stop={stop} setMessages={setMessages} />
         ) : (
-          <SendButton
-            input={input}
-            submitForm={submitForm}
-            uploadQueue={uploadQueue}
-          />
+          <>
+            {!isListening ? (
+              <VoiceButton
+                isRecording={false}
+                onClick={() => {
+                  startListening();
+                }}
+                status={status}
+                disabled={status !== 'ready'}
+              />
+            ) : (
+              <>
+                <Button
+                  data-testid="voice-cancel"
+                  className="rounded-full p-[6px] h-fit"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    cancelListening();
+                  }}
+                  title="Cancel"
+                >
+                  <X size={14} />
+                </Button>
+                <Button
+                  data-testid="voice-finish"
+                  className="rounded-full p-[6px] h-fit"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    finishListening();
+                  }}
+                  title="Finish"
+                >
+                  <Check size={14} />
+                </Button>
+              </>
+            )}
+            <SendButton
+              input={input}
+              submitForm={submitForm}
+              uploadQueue={uploadQueue}
+            />
+          </>
         )}
       </div>
     </div>
@@ -541,7 +540,7 @@ function PureStopButton({
   return (
     <Button
       data-testid="stop-button"
-      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
+      className="rounded-full p-[6px] h-fit border dark:border-zinc-600"
       onClick={(event) => {
         event.preventDefault();
         stop();
@@ -567,7 +566,7 @@ function PureSendButton({
   return (
     <Button
       data-testid="send-button"
-      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
+      className="rounded-full p-[6px] h-fit border dark:border-zinc-600"
       onClick={(event) => {
         event.preventDefault();
         submitForm();
@@ -600,7 +599,7 @@ function PureVoiceButton({
   return (
     <Button
       data-testid="voice-button"
-      className="rounded-md p-[7px] h-fit dark:border-zinc-700 hover:dark:bg-zinc-900 hover:bg-zinc-200"
+      className="rounded-full p-[6px] h-fit border dark:border-zinc-600 hover:dark:bg-zinc-900 hover:bg-zinc-200"
       onClick={(event) => {
         event.preventDefault();
         onClick();

@@ -354,12 +354,10 @@ export function Chat({
 
         {/* AI Consultant (desktop sidebar) */}
         <aside className="hidden md:flex md:col-span-4 flex-col h-full md:border-l border-t">
-          <div className="sticky top-0 z-10 bg-background">
-            <div className="p-3 flex items-center justify-between border-b">
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="px-2 md:px-2 py-1.5 flex items-center justify-between border-b">
               <span className="font-medium">AI Consultant</span>
             </div>
-
-            {/* Patient Agent Selector removed from sidebar; now only in sticky header */}
 
             {/* Sticky latest note */}
             {consultantNotes.length > 0 && (
