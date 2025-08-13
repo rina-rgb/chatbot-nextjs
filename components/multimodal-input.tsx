@@ -509,7 +509,7 @@ function PureMultimodalInput({
                 <>
                   <Button
                     data-testid="voice-cancel"
-                    className="rounded-full p-[6px] h-fit border dark:border-zinc-600 hover:dark:bg-zinc-900 hover:bg-zinc-200 transition-colors transition-transform hover:scale-105 active:scale-95"
+                    className="rounded-full p-[6px] h-fit border dark:border-zinc-600 hover:dark:bg-zinc-900 hover:bg-zinc-200 transition-transform hover:scale-105 active:scale-95"
                     variant="ghost"
                     onClick={(e) => {
                       e.preventDefault();
@@ -522,7 +522,7 @@ function PureMultimodalInput({
                   </Button>
                   <Button
                     data-testid="voice-finish"
-                    className="rounded-full p-[6px] h-fit border dark:border-zinc-600 hover:dark:bg-zinc-900 hover:bg-zinc-200 transition-colors transition-transform hover:scale-105 active:scale-95"
+                    className="rounded-full p-[6px] h-fit border dark:border-zinc-600 hover:dark:bg-zinc-900 hover:bg-zinc-200 transition-transform hover:scale-105 active:scale-95"
                     variant="ghost"
                     onClick={(e) => {
                       e.preventDefault();

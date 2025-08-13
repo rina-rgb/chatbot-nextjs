@@ -29,35 +29,15 @@ export function ConsultantNoteCard({ chatId, note }: ConsultantNoteCardProps) {
 
   const vote = votes?.find((v) => v.noteId === note.id);
 
-  const priorityColors = {
-    green: 'bg-green-500',
-    yellow: 'bg-yellow-500',
-    red: 'bg-red-500',
-  };
-
-  const priorityBorders = {
-    green: 'border-green-200 dark:border-green-800',
-    yellow: 'border-yellow-200 dark:border-yellow-800',
-    red: 'border-red-200 dark:border-red-800',
-  };
-
-  const priorityBackgrounds = {
-    green: 'bg-green-50 dark:bg-green-950/50',
-    yellow: 'bg-yellow-50 dark:bg-yellow-950/50',
-    red: 'bg-red-50 dark:bg-red-950/50',
-  };
+  // Neutral styling: grayscale only
 
   return (
-    <div
-      className={`text-sm border rounded p-3 ${priorityBackgrounds[note.priority]} ${priorityBorders[note.priority]}`}
-    >
+    <div className={`text-sm border rounded-xl p-4 bg-muted/20`}>
       <div className="flex items-start gap-2">
-        <div
-          className={`size-3 rounded-full mt-1 shrink-0 ${priorityColors[note.priority]}`}
-        />
+        <div className="size-2 rounded-full mt-1 shrink-0 bg-muted-foreground/60" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-foreground truncate">
+            <h4 className="text-foreground/90 truncate font-normal">
               {note.title}
             </h4>
             <button

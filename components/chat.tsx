@@ -24,6 +24,40 @@ import type { Attachment, ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
 import { ConsultantNoteCard } from './consultant-note-card';
 
+function ConsultantEmptyPlaceholder() {
+  return (
+    <div className="rounded-xl border bg-muted/20 p-4">
+      <div className="flex items-start gap-3">
+        <div className="mt-1 size-2 rounded-full" />
+        <div className="flex-1 min-w-0">
+          <p className="mb-1 text-sm text-muted-foreground">
+            AI consultant notes will appear here after the therapist receives a
+            patient response each round.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            You will see a short summary and expandable details. The most recent
+            note stays at the top.
+          </p>
+          <div className="flex flex-col gap-3 my-2 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <span className="size-2 rounded-full bg-green-500" />
+              Green: doing well
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="size-2 rounded-full bg-yellow-500" />
+              Yellow: suggestions available
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="size-2 rounded-full bg-red-500" />
+              Red: urgent review needed
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Chat({
   id,
   initialMessages,
@@ -277,87 +311,10 @@ export function Chat({
             isArtifactVisible={isArtifactVisible}
           />
 
-          {/* Mobile AI Consultant (below conversation) */}
-          {consultantNotes.length > 0 && (
-            <div className="md:hidden border-t px-3 py-2">
-              <div
-                className="flex overflow-x-auto snap-x snap-mandatory gap-3"
-                onWheel={(e) => {
-                  const el = e.currentTarget;
-                  const atStart = el.scrollLeft <= 0 && e.deltaY < 0;
-                  const atEnd =
-                    el.scrollLeft + el.clientWidth >= el.scrollWidth &&
-                    e.deltaY > 0;
-                  if (atStart || atEnd) e.preventDefault();
-                }}
-              >
-                {[
-                  consultantNotes[consultantNotes.length - 1],
-                  ...consultantNotes.slice(0, -1),
-                ].map((note, index) => {
-                  const isLatest = index === 0;
-                  return (
-                    <div
-                      key={note.id}
-                      className="snap-center shrink-0 min-w-0 w-full"
-                    >
-                      <div className="mb-1.5">
-                        <span
-                          className={
-                            isLatest
-                              ? 'text-[11px] uppercase tracking-wider font-semibold text-foreground/70 bg-muted px-2 py-1 rounded'
-                              : 'text-[11px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted/60 px-2 py-1 rounded'
-                          }
-                        >
-                          {isLatest ? 'Most recent note' : 'Note history'}
-                        </span>
-                      </div>
-                      <div className={isLatest ? '' : 'opacity-70'}>
-                        <ConsultantNoteCard chatId={id} note={note} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex justify-center gap-2 mt-2 pb-2">
-                {consultantNotes.map((n, i) => (
-                  <span
-                    key={`note-dot-${n.id}`}
-                    className={
-                      'w-2 h-2 rounded-full ' +
-                      (i === 0 ? 'bg-foreground' : 'bg-muted-foreground/50')
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Mobile AI Consultant (below Suggestions) */}
           {consultantNotes.length === 0 && (
-            <div className="md:hidden border-t px-3 py-3">
-              <div className="rounded-md border bg-muted/30 p-3 text-sm leading-relaxed">
-                <p className="mb-2">
-                  <b>AI consultant notes will appear here</b> after the
-                  therapist receives a patient response each round.
-                </p>
-                <div className="flex flex-wrap items-center gap-3 mb-2 text-xs">
-                  <span className="inline-flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    <b>Green</b>: doing well
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-yellow-500" />
-                    <b>Yellow</b>: suggestions available
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-red-500" />
-                    <b>Red</b>: urgent review needed
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  You will see a short summary and expandable details. The most
-                  recent note stays at the top.
-                </p>
-              </div>
+            <div className="md:hidden border-t p-3">
+              <ConsultantEmptyPlaceholder />
             </div>
           )}
 
@@ -382,9 +339,9 @@ export function Chat({
 
         {/* AI Consultant (desktop sidebar) */}
         <aside className="hidden md:flex md:col-span-4 flex-col h-full md:border-l border-t">
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="sticky top-0 z-10 bg-background">
             <div className="px-2 md:px-2 py-1.5 flex items-center justify-between border-b">
-              <span className="font-medium">AI Consultant</span>
+              <span className="text-foreground/90">AI Consultant</span>
             </div>
 
             {/* Sticky latest note */}
@@ -402,32 +359,7 @@ export function Chat({
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
-            {consultantNotes.length === 0 && (
-              <div className="rounded-md border bg-muted/30 p-3 text-sm leading-relaxed">
-                <p className="mb-2">
-                  <b>AI consultant notes will appear here</b> after the
-                  therapist receives a patient response each round.
-                </p>
-                <div className="flex flex-wrap items-center gap-3 mb-2 text-xs">
-                  <span className="inline-flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    <b>Green</b>: doing well
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-yellow-500" />
-                    <b>Yellow</b>: suggestions available
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-red-500" />
-                    <b>Red</b>: urgent review needed
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  You will see a short summary and expandable details. The most
-                  recent note stays at the top.
-                </p>
-              </div>
-            )}
+            {consultantNotes.length === 0 && <ConsultantEmptyPlaceholder />}
             {consultantNotes.length > 1 && (
               <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted/60 px-2 py-1 rounded inline-block mb-2">
                 Note history
