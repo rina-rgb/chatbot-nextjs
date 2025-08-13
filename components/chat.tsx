@@ -252,8 +252,8 @@ export function Chat({
 
   return (
     <>
-      <div className="grid grid-cols-12 min-w-0 h-dvh bg-background">
-        <div className="col-span-8 flex flex-col min-w-0">
+      <div className="grid grid-cols-1 md:grid-cols-12 min-w-0 h-dvh bg-background">
+        <div className="md:col-span-8 col-span-12 flex flex-col min-w-0">
           <ChatHeader
             chatId={id}
             selectedModelId={initialChatModel}
@@ -263,10 +263,10 @@ export function Chat({
           />
 
           {/* Patient Agent Selector */}
-          <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
+          <div className="px-4 py-2 bg-muted/50 border-b flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span className="font-medium">Patient Agent:</span>
             <select
-              className="border rounded px-2 py-1 text-sm"
+              className="border rounded px-2 py-1 text-sm w-full sm:w-auto"
               value={patientAgent}
               onChange={(e) =>
                 setPatientAgent(
@@ -294,6 +294,52 @@ export function Chat({
             isArtifactVisible={isArtifactVisible}
           />
 
+          {/* Mobile AI Consultant (below conversation) - Carousel */}
+          {consultantNotes.length > 0 && (
+            <div className="md:hidden border-t p-3">
+              <div className="flex overflow-x-auto snap-x snap-mandatory gap-3">
+                {[
+                  consultantNotes[consultantNotes.length - 1],
+                  ...consultantNotes.slice(0, -1),
+                ].map((note, index) => {
+                  const isLatest = index === 0;
+                  return (
+                    <div
+                      key={note.id}
+                      className="snap-center shrink-0 min-w-full"
+                    >
+                      <div className="mb-2">
+                        <span
+                          className={
+                            isLatest
+                              ? 'text-[11px] uppercase tracking-wider font-semibold text-foreground/70 bg-muted px-2 py-1 rounded'
+                              : 'text-[11px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted/60 px-2 py-1 rounded'
+                          }
+                        >
+                          {isLatest ? 'Most recent note' : 'Note history'}
+                        </span>
+                      </div>
+                      <div className={isLatest ? '' : 'opacity-70'}>
+                        <ConsultantNoteCard chatId={id} note={note} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-center gap-2 mt-3">
+                {[...Array(consultantNotes.length)].map((_, i) => (
+                  <span
+                    key={`note-dot-${i}`}
+                    className={
+                      'w-2 h-2 rounded-full ' +
+                      (i === 0 ? 'bg-foreground' : 'bg-muted-foreground/50')
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           <form className="flex w-full mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w/full md:max-w-3xl">
             {!isReadonly && (
               <MultimodalInput
@@ -313,8 +359,8 @@ export function Chat({
           </form>
         </div>
 
-        {/* AI Consultant */}
-        <aside className="col-span-4 border-l flex flex-col h-full">
+        {/* AI Consultant (desktop sidebar) */}
+        <aside className="hidden md:flex md:col-span-4 flex-col h-full md:border-l border-t">
           <div className="sticky top-0 z-10 bg-background">
             <div className="p-3 flex items-center justify-between border-b">
               <span className="font-medium">AI Consultant</span>
