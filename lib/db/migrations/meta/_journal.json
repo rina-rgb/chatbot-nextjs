@@ -57,20 +57,6 @@
 			"when": 1754368552855,
 			"tag": "0007_true_jubilee",
 			"breakpoints": true
-		},
-		{
-			"idx": 8,
-			"version": "7",
-			"when": 1754422982256,
-			"tag": "0008_windy_captain_stacy",
-			"breakpoints": true
-		},
-		{
-			"idx": 9,
-			"version": "7",
-			"when": 1754427456844,
-			"tag": "0009_watery_phantom_reporter",
-			"breakpoints": true
 		}
 	]
 }
