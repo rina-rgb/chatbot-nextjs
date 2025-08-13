@@ -14,6 +14,15 @@
 - Data persistence (Neon Postgres, Vercel Blob)
 - Tailwind + shadcn/ui + Radix primitives
 
+## Preview
+The chat interface powered by Next.js looks something like this:
+
+Firt welcome screen
+<img width="1463" height="1143" alt="Screenshot 2025-08-13 at 1 08 27 PM" src="https://github.com/user-attachments/assets/ac1e4c2d-5e11-49be-ae6b-4106b58db94f" />
+
+After an interaction
+<img width="1455" height="1168" alt="Screenshot 2025-08-13 at 1 20 13 PM" src="https://github.com/user-attachments/assets/7be40b1f-2535-443a-9a9a-794afc318555" />
+
 ## Quickstart
 
 ```bash
