@@ -311,36 +311,65 @@ export function Chat({
             isArtifactVisible={isArtifactVisible}
           />
 
-          {/* Mobile AI Consultant (below Suggestions) */}
+          {/* Mobile AI Consultant (below Suggestions) - Carousel */}
           {consultantNotes.length === 0 && (
             <div className="md:hidden border-t p-3">
               <ConsultantEmptyPlaceholder />
             </div>
           )}
           {consultantNotes.length > 0 && (
-            <div className="md:hidden border-t p-3">
-              <div className="mb-1.5">
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground bg-muted px-2 py-1 rounded">
-                  Most recent note
-                </span>
+            <div className="md:hidden border-t px-3 py-2">
+              <div
+                className="flex overflow-x-auto snap-x snap-mandatory gap-3"
+                onWheel={(e) => {
+                  const el = e.currentTarget;
+                  const atStart = el.scrollLeft <= 0 && e.deltaY < 0;
+                  const atEnd =
+                    el.scrollLeft + el.clientWidth >= el.scrollWidth &&
+                    e.deltaY > 0;
+                  if (atStart || atEnd) e.preventDefault();
+                }}
+              >
+                {[
+                  consultantNotes[consultantNotes.length - 1],
+                  ...consultantNotes.slice(0, -1),
+                ].map((note, index) => {
+                  const isLatest = index === 0;
+                  return (
+                    <div
+                      key={note.id}
+                      className="snap-center shrink-0 min-w-0 w-full"
+                    >
+                      <div className="mb-1.5">
+                        <span
+                          className={
+                            isLatest
+                              ? 'text-[11px] uppercase tracking-wider text-foreground/70 bg-muted px-2 py-1 rounded'
+                              : 'text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/60 px-2 py-1 rounded'
+                          }
+                        >
+                          {isLatest ? 'Most recent note' : 'Note history'}
+                        </span>
+                      </div>
+                      <div className={isLatest ? '' : 'opacity-80'}>
+                        <ConsultantNoteCard
+                          chatId={id}
+                          note={note}
+                          highlight={isLatest}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <ConsultantNoteCard
-                chatId={id}
-                note={consultantNotes[consultantNotes.length - 1]}
-                highlight
-              />
-              {consultantNotes.length > 1 && (
-                <>
-                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/60 px-2 py-1 rounded inline-block mt-3 mb-2">
-                    Note history
-                  </div>
-                  <div className="space-y-2 opacity-80">
-                    {consultantNotes.slice(0, -1).map((n) => (
-                      <ConsultantNoteCard key={n.id} chatId={id} note={n} />
-                    ))}
-                  </div>
-                </>
-              )}
+              <div className="flex justify-center gap-2 mt-2 pb-2">
+                {consultantNotes.map((_, i) => (
+                  <span
+                    key={`note-dot-${i}`}
+                    className={`size-2 rounded-full ${i === 0 ? 'bg-foreground' : 'bg-muted-foreground/50'}`}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
