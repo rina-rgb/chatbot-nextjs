@@ -1,10 +1,9 @@
 /** @type {import('postcss-load-config').Config} */
-const config = {
+export default {
   // Nesting must come BEFORE Tailwind so nested selectors are expanded first
   plugins: {
-    'tailwindcss/nesting': {},
+    'postcss-nesting': {},
     tailwindcss: {},
+    autoprefixer: {},
   },
 };
-
-export default config;
