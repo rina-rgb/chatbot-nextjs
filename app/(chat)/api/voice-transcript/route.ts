@@ -22,6 +22,14 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const audio = formData.get('audio');
+    // Debug: basic file metadata
+    try {
+      console.log('[voice-transcript] received file', {
+        isFile: audio instanceof File,
+        type: (audio as File | null)?.type,
+        size: (audio as File | null)?.size,
+      });
+    } catch {}
 
     if (!audio || !(audio instanceof File)) {
       return badRequest('Missing audio file');
@@ -35,6 +43,15 @@ export async function POST(req: NextRequest) {
 
     const mediaType = audio.type || 'audio/webm';
     const data = new Uint8Array(await audio.arrayBuffer());
+    // Debug: binary size
+    try {
+      console.log(
+        '[voice-transcript] data bytes',
+        data.length,
+        'mediaType',
+        mediaType,
+      );
+    } catch {}
 
     // Ask Gemini to produce a transcript from the audio
     // Uses inline file input via AI SDK messages API
@@ -54,7 +71,9 @@ export async function POST(req: NextRequest) {
       ],
       temperature: 0,
     });
-
+    try {
+      console.log('[voice-transcript] gemini text length', (text || '').length);
+    } catch {}
     const transcript = (text || '')
       .replace(/\s?\[[^\]]*]/g, '')
       .replace(/\s{2,}/g, ' ')
