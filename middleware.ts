@@ -1,8 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
+import { isDevelopmentEnvironment, guestRegex } from '@/lib/constants';
 
-// TEMPORARILY DISABLED FOR MVP DEVELOPMENT
-// Uncomment the function below to re-enable authentication
-/*
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -36,12 +35,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  return NextResponse.next();
-}
-*/
-
-// TEMPORARY: Allow all requests to pass through without authentication
-export async function middleware(_request: NextRequest) {
   return NextResponse.next();
 }
 
