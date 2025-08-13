@@ -1,22 +1,27 @@
 <div align="center">
-  <img alt="WET Therapist Training" src="app/(chat)/opengraph-image.png" width="320" />
-  <h1>WET Therapist Training Chatbot for PTSD Patients</h1>
-  <p>A Next.js + AI SDK application for therapist training with AI consultant feedback, and voice transcription.</p>
-  <p>
+  <h1>WET Therapist Training Chatbot</h1>
+  <p>Next.js + AI SDK app for therapist training with AI consultant feedback and voice transcription.</p>
+</div>
+
+---
 
 ## Features
 
 - AI-first chat UX built with Next.js App Router
-- AI Consultant sidebar with graded notes (green/yellow/red → now neutral UI), sticky latest note, and history
-- Voice input with Gemini-based speech-to-text (server-side for security)
+- AI Consultant sidebar with graded notes (latest note highlighted, history below)
+- Voice input with Gemini-based speech-to-text (server-side)
 - Authentication (Auth.js) with production middleware
 - Data persistence (Neon Postgres, Vercel Blob)
 - Tailwind + shadcn/ui + Radix primitives
 
+## Quickstart
+
 ```bash
-# optional
-pnpm build
+pnpm install
+pnpm dev
 ```
+
+Open http://localhost:3000
 
 ## Credits
 
