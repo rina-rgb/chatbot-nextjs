@@ -51,14 +51,14 @@ function PureSuggestedActions({
       className="grid sm:grid-cols-2 gap-2 w-full"
     >
       {suggestedActions.map((suggestedAction, index) => (
-        <div className={index > 1 ? 'hidden sm:block' : 'block'}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ delay: 0.05 * index }}
-            key={`suggested-action-${suggestedAction.title}-${index}`}
-          >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ delay: 0.05 * index }}
+          key={`suggested-action-${suggestedAction.title}-${index}`}
+          className={index > 1 ? 'hidden sm:block' : 'block'}
+        >
           <Button
             variant="ghost"
             onClick={async () => {
@@ -76,8 +76,7 @@ function PureSuggestedActions({
               {suggestedAction.label}
             </span>
           </Button>
-          </motion.div>
-        </div>
+        </motion.div>
       ))}
     </div>
   );
