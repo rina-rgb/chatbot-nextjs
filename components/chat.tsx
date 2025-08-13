@@ -260,28 +260,11 @@ export function Chat({
             selectedVisibilityType={initialVisibilityType}
             isReadonly={isReadonly}
             session={session}
+            patientAgent={patientAgent}
+            setPatientAgent={(v) => setPatientAgent(v)}
           />
 
-          {/* Patient Agent Selector */}
-          <div className="px-4 py-2 bg-muted/50 border-b flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <span className="font-medium">Patient Agent:</span>
-            <select
-              className="border rounded px-2 py-1 text-sm w-full sm:w-auto"
-              value={patientAgent}
-              onChange={(e) =>
-                setPatientAgent(
-                  e.target.value as 'latino-veteran' | 'black-woman-trauma',
-                )
-              }
-            >
-              <option value="latino-veteran">
-                Carlos Rodriguez (Latino Veteran - Beginner)
-              </option>
-              <option value="black-woman-trauma">
-                Michelle Johnson (Black Woman - Intermediate)
-              </option>
-            </select>
-          </div>
+          {/* Patient Agent Selector moved to header; mobile inline above */}
 
           <Messages
             chatId={id}
@@ -296,8 +279,18 @@ export function Chat({
 
           {/* Mobile AI Consultant (below conversation) - Carousel */}
           {consultantNotes.length > 0 && (
-            <div className="md:hidden border-t p-3">
-              <div className="flex overflow-x-auto snap-x snap-mandatory gap-3">
+            <div className="md:hidden border-t px-3 py-2">
+              <div
+                className="flex overflow-x-auto snap-x snap-mandatory gap-3"
+                onWheel={(e) => {
+                  const el = e.currentTarget;
+                  const atStart = el.scrollLeft <= 0 && e.deltaY < 0;
+                  const atEnd =
+                    el.scrollLeft + el.clientWidth >= el.scrollWidth &&
+                    e.deltaY > 0;
+                  if (atStart || atEnd) e.preventDefault();
+                }}
+              >
                 {[
                   consultantNotes[consultantNotes.length - 1],
                   ...consultantNotes.slice(0, -1),
@@ -306,9 +299,9 @@ export function Chat({
                   return (
                     <div
                       key={note.id}
-                      className="snap-center shrink-0 min-w-full"
+                      className="snap-center shrink-0 min-w-0 w-full"
                     >
-                      <div className="mb-2">
+                      <div className="mb-1.5">
                         <span
                           className={
                             isLatest
@@ -326,10 +319,10 @@ export function Chat({
                   );
                 })}
               </div>
-              <div className="flex justify-center gap-2 mt-3">
-                {[...Array(consultantNotes.length)].map((_, i) => (
+              <div className="flex justify-center gap-2 mt-2 pb-2">
+                {consultantNotes.map((n, i) => (
                   <span
-                    key={`note-dot-${i}`}
+                    key={`note-dot-${n.id}`}
                     className={
                       'w-2 h-2 rounded-full ' +
                       (i === 0 ? 'bg-foreground' : 'bg-muted-foreground/50')
@@ -365,6 +358,8 @@ export function Chat({
             <div className="p-3 flex items-center justify-between border-b">
               <span className="font-medium">AI Consultant</span>
             </div>
+
+            {/* Patient Agent Selector removed from sidebar; now only in sticky header */}
 
             {/* Sticky latest note */}
             {consultantNotes.length > 0 && (

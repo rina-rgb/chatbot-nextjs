@@ -2,14 +2,14 @@
 import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
 
-import { ModelSelector } from '@/components/model-selector';
+// import { ModelSelector } from '@/components/model-selector';
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { Button } from '@/components/ui/button';
 import { PlusIcon } from './icons';
 import { useSidebar } from './ui/sidebar';
 import { memo, useEffect, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { type VisibilityType, VisibilitySelector } from './visibility-selector';
+import { type VisibilityType } from './visibility-selector';
 import type { Session } from 'next-auth';
 
 function PureChatHeader({
@@ -18,12 +18,16 @@ function PureChatHeader({
   selectedVisibilityType,
   isReadonly,
   session,
+  patientAgent,
+  setPatientAgent,
 }: {
   chatId: string;
   selectedModelId: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   session: Session;
+  patientAgent: 'latino-veteran' | 'black-woman-trauma';
+  setPatientAgent: (value: 'latino-veteran' | 'black-woman-trauma') => void;
 }) {
   const router = useRouter();
   const { open } = useSidebar();
@@ -39,8 +43,26 @@ function PureChatHeader({
   const showNewChatButton = hasMounted ? !open || windowWidth < 768 : !open;
 
   return (
-    <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
+    <header className="sticky top-0 z-50 flex items-center px-2 md:px-2 py-1.5 gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <SidebarToggle />
+
+      {/* Patient Agent selector (sticky in header, right-aligned) */}
+      <div className="ml-auto flex items-center gap-2">
+        <select
+          className="border rounded px-2 py-1 text-sm md:text-base max-w-[260px] w-auto truncate"
+          value={patientAgent}
+          onChange={(e) =>
+            setPatientAgent(
+              (e.target as HTMLSelectElement).value as
+                | 'latino-veteran'
+                | 'black-woman-trauma',
+            )
+          }
+        >
+          <option value="latino-veteran">Carlos (Beginner)</option>
+          <option value="black-woman-trauma">Michelle (Intermediate)</option>
+        </select>
+      </div>
 
       {showNewChatButton && (
         <Tooltip>
@@ -54,7 +76,7 @@ function PureChatHeader({
               }}
             >
               <PlusIcon />
-              <span className="md:sr-only">New Chat</span>
+              <span className="md:sr-only hidden md:inline">New Chat</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>New Chat</TooltipContent>
@@ -81,5 +103,11 @@ function PureChatHeader({
 }
 
 export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
-  return prevProps.selectedModelId === nextProps.selectedModelId;
+  return (
+    prevProps.chatId === nextProps.chatId &&
+    prevProps.selectedModelId === nextProps.selectedModelId &&
+    prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
+    prevProps.isReadonly === nextProps.isReadonly &&
+    prevProps.patientAgent === nextProps.patientAgent
+  );
 });
