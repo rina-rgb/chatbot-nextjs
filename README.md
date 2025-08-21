@@ -1,6 +1,7 @@
 <div align="center">
   <h1>WET Therapist Training Chatbot</h1>
   <p>Next.js + AI SDK app for therapist training with AI consultant feedback and voice transcription.</p>
+  <b>Inspired by a Stanford Computational Psychology Department paper: https://osf.io/preprints/osf/wx93m_v2.”</b>
 </div>
 
 ---
@@ -36,6 +37,7 @@ Open http://localhost:3000
 
 - Based on the Vercel AI Chatbot template and AI SDK
 - Uses Next.js, Tailwind, shadcn/ui, Radix, Neon Postgres, Vercel Blob, and Auth.js
+- Inspired by a Stanford Computational Psychology Department paper: https://osf.io/preprints/osf/wx93m_v2.”
 
 ## License
 
